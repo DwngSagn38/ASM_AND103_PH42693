@@ -12,7 +12,7 @@ var app = express();
 
 // đổi địa chỉ localhost thành địa chỉ wifi
 const PORT = 3000;
-const HOST = '10.24.61.82'; // Địa chỉ IP của mạng wifi của bạn
+const HOST = '192.168.100.3'; // Địa chỉ IP của mạng wifi của bạn
 
 app.listen(PORT, HOST, () => {
     console.log(`Server is running on http://${HOST}:${PORT}`);

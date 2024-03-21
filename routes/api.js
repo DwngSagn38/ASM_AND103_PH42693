@@ -85,32 +85,34 @@ router.delete('/students/delete/:id', async (req,res) => {
 
 // update student
 router.put('/students/update/:id', async (req,res) => {
-    const {id} = req.params;
-    const data = req.body;
-    const UpdateStudent = await StudentModel.findById(id);
-    const result = null;
-    if(UpdateStudent){
-        UpdateStudent.name = data.name ?? UpdateStudent.name;
-        UpdateStudent.masv = data.masv ?? UpdateStudent.masv;
-        UpdateStudent.point = data.point ?? UpdateStudent.point;
-        UpdateStudent.avatar = data.avatar ?? UpdateStudent.avatar;
-        result = await UpdateStudent.save();
+    try {
+        const { id } = req.params;
+        const data = req.body;
+        
+        // Sử dụng findByIdAndUpdate để tìm và cập nhật dữ liệu
+        const result = await StudentModel.findByIdAndUpdate(id, data, { new: true });
+        
+        if (result) {
+            res.json({
+                status: 200,
+                message: "Update student success",
+                data: result
+            });
+        } else {
+            res.status(404).json({
+                status: 404,
+                message: "Student not found",
+                data: []
+            });
+        }
+    } catch (error) {
+        // Xử lý lỗi nếu có
+        res.status(500).json({
+            status: 500,
+            message: "Internal Server Error",
+            error: error.message
+        });
     }
-
-    if(result){
-        res.json({
-            "status" : "200",
-            "messenger" : "Update student success",
-            "data" : result
-        })
-    }else{
-        res.json({
-            "status" : "400",
-            "messenger" : "Update fail",
-            "data" : []
-        })
-    }
-    
 })
 
 module.exports = router;
