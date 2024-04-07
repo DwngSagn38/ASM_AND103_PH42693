@@ -4,6 +4,7 @@ const router = express.Router();
 
 // khai bao model 
 const StudentModel = require('../model/students');
+const Upload = require('../config/common/upload');
 
 router.get('/', (req,res) => {
     res.send('vào api mobile');
@@ -11,36 +12,41 @@ router.get('/', (req,res) => {
 
 // get danh sach student và tìm theo mã sv 
 router.get('/students', async (req, res) => {
-
-    const { masv } = req.query;
-    if (!masv) {
-        const students = await StudentModel.find();
-        console.log(students);
-        res.send(students);
-    } else {
-        try {
-            const student = await StudentModel.findOne({ masv: masv });
-            if (!student) {
-                return res.status(404).send("Không tìm thấy sinh viên");
-            }
-            console.log(student);
-            res.send(student);
-        } catch (error) {
-            console.error(error);
-            res.status(500).send("Lỗi server");
+    try {
+        const result = await StudentModel.find().sort({createdAt : -1});
+        if(result){
+            res.json({
+                "status" : "200",
+                "messenger" : "Danh sách sinh viên",
+                "data" : result
+            })
+        }else{
+            res.json({
+                "status" : "400",
+                "messenger" : "Fail",
+                "data" : []
+            })
         }
+    } catch (error) {
+        console.log(error);
     }
 })
 
 // add student 
-router.post('/students/add', async (req,res) => {
+router.post('/students/add',Upload.single('avatar'), async (req,res) => {
+    //Upload.array('image',5) => up nhiều file tối đa là 5
+    //upload.single('image') => up load 1 file
     try{
-        const data = req.body;
+        const data = req.body; // Lấy dữ liệu từ body
+        const { file } = req //files nếu upload nhiều, file nếu upload 1 file
+        const urlImage = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+            // files.map((file) => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`)
+        //url hình ảnh sẽ được lưu dưới dạng: http://localhost:3000/upload/filename
         const student = new StudentModel({
             masv : data.masv,
             name : data.name,
             point : data.point,
-            avatar : data.avatar
+            avatar : urlImage
         });
 
         const result = await student.save();
@@ -83,14 +89,19 @@ router.delete('/students/delete/:id', async (req,res) => {
     }
 });
 
-// update student
-router.put('/students/update/:id', async (req,res) => {
+router.put('/students/update/:id', Upload.single('avatar'), async (req, res) => {
     try {
         const { id } = req.params;
-        const data = req.body;
+        let updateData = req.body;
+        
+        // Nếu có file ảnh được tải lên, thêm URL của ảnh vào dữ liệu cần cập nhật
+        if (req.file) {
+            const urlImage = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+            updateData.avatar = urlImage;
+        }
         
         // Sử dụng findByIdAndUpdate để tìm và cập nhật dữ liệu
-        const result = await StudentModel.findByIdAndUpdate(id, data, { new: true });
+        const result = await StudentModel.findByIdAndUpdate(id, updateData, { new: true });
         
         if (result) {
             res.json({
@@ -112,6 +123,61 @@ router.put('/students/update/:id', async (req,res) => {
             message: "Internal Server Error",
             error: error.message
         });
+    }
+});
+
+//search Distributor
+router.get('/search', async (req, res) => {
+    try {
+        const key = req.query.key
+
+        const data = await StudentModel.find({ name: { "$regex": key, "$options": "i" } })
+            .sort({ createdAt: -1 });
+
+        if (data) {
+            res.json({
+                "status": 200,
+                "messenger": "Thành công",
+                "data": data
+            })
+        } else {
+            res.json({
+                "status": 400,
+                "messenger": "Lỗi, không thành công",
+                "data": []
+            })
+        }
+    } catch (error) {
+        console.log(error);
+    }
+})
+
+//search Distributor
+router.get('/sort', async (req, res) => {
+    try {
+        const { type } = req.query;
+        let data = null;
+        if(type == 1){ // type nhập vào là true
+            data = await StudentModel.find().sort({ point: 1 }); // tăng dần 
+        }else{
+            data = await StudentModel.find().sort({ point: -1 }); // giảm dần
+        }  
+
+        if (data) {
+            res.json({ 
+                "status": 200,
+                "messenger": "Thành công",
+                "data": data
+            })
+        } else {
+            res.json({
+                "status": 400,
+                "messenger": "Lỗi, không thành công",
+                "data": []
+            })
+        }
+    } catch (error) {
+        console.log(error);
     }
 })
 

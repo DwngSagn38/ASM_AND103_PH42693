@@ -6,6 +6,8 @@ const StudentModel = new Schema({
     name : {type: String, require: true},
     point : {type: Number, require: true},
     avatar : {type: String}
+},{
+    timestamps: true
 })
 
 module.exports = mongoose.model('student', StudentModel)
